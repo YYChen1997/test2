@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
     <title>長青Test_2 陳永裕</title>
+
     <script src="https://d3js.org/d3.v3.min.js"></script>
     <script>//數據部分
         var YearNum, MakeNum, SizeKW;   //宣告三個題目的全域變數
@@ -28,7 +29,7 @@
             if (NeedToAverage) {//若開啟平均功能
                 for (var i in Result) { Result[i] = { [Object.keys(Result[i])]: (parseInt(Object.values(Result[i])) / parseInt(Count[i])) }; }
             }
-            if (NeedToSort)     //若開啟排序功能(小至大)
+            if (NeedToSort) {   //若開啟排序功能(小至大)
                 for (var i in Result) {
                     for (var j in Result) {
                         var memory;
