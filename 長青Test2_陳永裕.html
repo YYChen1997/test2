@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>長青Test_2 陳永裕</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <script>//數據部分
+        var YearNum, MakeNum, SizeKW;   //宣告三個題目的全域變數
+        /*統計(累加平均&排序)函式(實務上我會喜歡將這幾個功能分開成幾個函式，但由於該次為一考核，故將兩功能整合在一起以減少行數)*/
+        function TotalNum(Data, NeedAddUp = false, AddValue = null, NeedToAverage = false, NeedToSort = false) {//計數程式(資料,是否開啟累加功能,欲累加值,是否平均,是否排序)
+            var Result = [], Count = [];//最終輸出,項目平均數分母(使用者在NeedAddUp選擇true時會作用)
+            for (var i in Data) {       //歷遍資料欄位
+                var NeedToAdd = true;   //初始設置 增加新欄位開關 為開
+                for (var j in Result) { //歷遍最終輸出之當前欄位
+                    if (Object.keys(Result[j]) == Data[i]) {//如果 當前資料項目 之值已存在於 最終輸出 之某欄位
+                        Result[j] = { [Object.keys(Result[j])]: parseInt(Object.values(Result[j])) + (NeedAddUp ? parseInt(AddValue[i]) : 1) };//該最終欄位+1(如開啟累加功能，則加入當前資料值)
+                        if (NeedToAverage) { Count[j]++; }//如果開啟平均數功能，該 資料項目 出現次數+1
+                        NeedToAdd = false;//不增加新欄位
+                        break;
+                    }
+                }
+                if (NeedToAdd) {//若需增加新欄位
+                    Result.push({ [Data[i]]: NeedAddUp ? parseInt(AddValue[i]) : parseInt(1) });//新增{資料名稱 : 計數(如開啟累加功能，則加入當前資料值)}
+                    if (NeedToAverage) { Count.push(1); }//如果開啟平均數功能，新增該 資料項目 出現欄位 = 1
+                }
+            }
+            if (NeedToAverage) {//若開啟平均功能
+                for (var i in Result) { Result[i] = { [Object.keys(Result[i])]: (parseInt(Object.values(Result[i])) / parseInt(Count[i])) }; }
+            }
+            if (NeedToSort)     //若開啟排序功能(小至大)
+                for (var i in Result) {
+                    for (var j in Result) {
+                        var memory;
+                        if (parseFloat(Object.values(Result[i])) < parseFloat(Object.values(Result[j]))) {
+                            memory = Result[i];
+                            Result[i] = Result[j];
+                            Result[j] = memory;
+                        }
+                    }
+                }
+            }
+            return Result;
+        }
+        /*數據*/
+        d3.csv('./cars.csv', function (data) {//載入資料
+            YearNum = TotalNum(data.map(item => Object.values(item)[0]));//讀取所需數據與開啟所需功能
+            MakeNum = TotalNum(data.map(item => Object.values(item)[1]));
+            SizeKW = TotalNum(data.map(item => Object.values(item)[3]), true, data.map(item => Object.values(item)[4]), true, true);
+        });
+
+    </script>
+    <script type="text/javascript" src="./echarts.min.js"></script>
+    <script type="text/javascript">//圖像化部分
+        /*echart長條圖*/
+        function echart_Bar(ViewID, Title_text, Legend_data, XAxis_data, YAxis_data, Series_name, Series_data) {//長條圖
+            Option = {
+                title: { text: Title_text, x: 'center' },
+                tooltip: {},
+                legend: { data: Legend_data },
+                xAxis: { data: XAxis_data },
+                yAxis: { data: YAxis_data },
+                series: [{ name: Series_name, type: 'bar', data: Series_data }]
+            };
+            echarts.init(document.getElementById(ViewID)).setOption(Option);
+        }
+         /*echart圓餅圖*/
+        function echart_Pie(ViewID, Title_text, Legend_data, Series_name, Series_data) {//圓餅圖
+            var SData = [];
+            for (i in Series_data) { SData[i] = { value: parseInt(Object.values(Series_data[i])), name: String(Object.keys(Series_data[i])) }; }//將資料轉化為Series:data所需格式
+            Option = {
+                title: { text: Title_text, x: 'center' },
+                tooltip: { trigger: 'item', formatter: "{a} <br/>{b} : {c} ({d}%)" },
+                legend: { orient: 'vertical', left: 'left', data: Legend_data },
+                series: [{
+                    name: Series_name, type: 'pie', data: SData,
+                    itemStyle: { emphasis: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+                }]
+            };
+            echarts.init(document.getElementById(ViewID)).setOption(Option);
+        }
+         /*圖像化*/
+        function set() {
+            echart_Bar('chartmain', '按年份，所有電動車的車型數量圖示', ['來源'], YearNum.map(item => Object.keys(item)[0]), null, '年份: 台', YearNum.map(item => Object.values(item)[0]));
+            echart_Pie('chartmain2', "各車廠推出的電機車數量佔比圖示", MakeNum.map(item => Object.keys(item)[0]), "車廠: 數量(%)", MakeNum);
+            echart_Bar('chartmain3', '電動車Size的平均電動車馬力(KW)圖示(依照KW由小到大排序)', ['來源'], SizeKW.map(item => Object.keys(item)[0]), null, 'Size: KW平均', SizeKW.map(item => Object.values(item)[0]));
+        }
+    </script>
+</head>
+<body onload="set()">
+    <div id="chartmain" style="width:700px; height: 400px;"></div>
+    <div id="chartmain2" style="width:700px; height: 400px;"></div>
+    <div id="chartmain3" style="width:1800px; height: 400px;"></div>
+</body>
+</html>
